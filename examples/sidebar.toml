@@ -1,0 +1,13 @@
+# Merge into your existing client config; do not duplicate TOML tables.
+# Fixed Catppuccin Mocha values: adapt to your theme. Not theme-token references.
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "workspace", { token = "$highlight_workspace", bold = true, rules = [{ equals = "Red", fg = "#f38ba8" }, { equals = "Peach", fg = "#fab387" }, { equals = "Yellow", fg = "#f9e2af" }, { equals = "Green", fg = "#a6e3a1" }, { equals = "Teal", fg = "#94e2d5" }, { equals = "Blue", fg = "#89b4fa" }, { equals = "Mauve", fg = "#cba6f7" }, { equals = "Gray", fg = "#6c7086" }] }],
+  ["branch", "git_status", "$highlight_tabs"],
+]
+
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", "machine", "workspace", "tab"],
+  ["agent", { token = "$highlight_workspace", bold = true, rules = [{ equals = "Red", fg = "#f38ba8" }, { equals = "Peach", fg = "#fab387" }, { equals = "Yellow", fg = "#f9e2af" }, { equals = "Green", fg = "#a6e3a1" }, { equals = "Teal", fg = "#94e2d5" }, { equals = "Blue", fg = "#89b4fa" }, { equals = "Mauve", fg = "#cba6f7" }, { equals = "Gray", fg = "#6c7086" }] }, { token = "$highlight_tab", bold = true, rules = [{ equals = "Red", fg = "#f38ba8" }, { equals = "Peach", fg = "#fab387" }, { equals = "Yellow", fg = "#f9e2af" }, { equals = "Green", fg = "#a6e3a1" }, { equals = "Teal", fg = "#94e2d5" }, { equals = "Blue", fg = "#89b4fa" }, { equals = "Mauve", fg = "#cba6f7" }, { equals = "Gray", fg = "#6c7086" }] }],
+]
