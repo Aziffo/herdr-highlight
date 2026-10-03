@@ -9,13 +9,13 @@ Herdr executables were not replaced for these tests.
 ## Automated checks
 
 - `npm run check`: JavaScript syntax and whitespace checks passed.
-- `npm test`: 17 tests passed on Linux with Node 26.8.1 locally and Node 24.18.0
+- `npm test`: 18 tests passed on Linux with Node 26.8.1 locally and Node 24.18.0
   through SSH on a second Linux host.
 - `HERDR_TEST_BIN=/path/to/master/herdr npm run test:integration`: passed on both
   hosts using isolated current-master servers, temporary configuration and
   endpoint sockets.
-- All six [GitHub Actions jobs](https://github.com/Aziffo/herdr-highlight/actions/runs/37083071938)
-  passed the portable unit/check suite on Linux, macOS and Windows, using Node 24
+- [GitHub Actions](https://github.com/Aziffo/herdr-highlight/actions/workflows/test.yml)
+  runs the portable unit/check suite on Linux, macOS and Windows, using Node 24
   and 26. Native Herdr/TTY integration was not run on macOS or Windows.
 - Installing `Aziffo/herdr-highlight` from GitHub using current master's
   `herdr plugin install ... --yes` succeeded in an isolated configuration,
@@ -25,6 +25,11 @@ Unit tests were introduced before the corresponding core/picker modules and
 observed failing, then made green. The concurrency regression exercises an
 older projection paused during a pane move while a newer projection finishes.
 Separate Node processes verify SQLite record preservation and monotonic counters.
+Repeated CI exposed an immediate `SQLITE_BUSY` race while simultaneous first
+connections switched a fresh database to WAL. Initialization now retries that
+specific condition and creates the schema transactionally. Twenty local fresh-
+database concurrency runs passed; an additional temporary-reader test verifies
+initialization can wait for the WAL transition to become available.
 
 The real-server integration test verifies:
 

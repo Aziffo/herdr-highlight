@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { DatabaseSync } from 'node:sqlite';
 import { COLORS, parseColor } from '../lib/colors.mjs';
 import { runtimeFromEnv, targetFromContext } from '../lib/context.mjs';
 import { HighlightStore } from '../lib/store.mjs';
@@ -180,6 +181,30 @@ test('independent action processes preserve concurrent records and monotonic rev
     assert.ok(saved.rows.every(row => row.color === 'mauve'));
     assert.equal(saved.seq, 4);
   } finally { store.close(); }
+});
+
+test('first initialization waits for a temporary reader preventing the WAL transition', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'herdr-highlight-initialize-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const reader = new DatabaseSync(join(dir, 'highlights.sqlite'));
+  reader.exec('BEGIN; PRAGMA user_version;');
+  let release;
+  let stderr = '';
+  const script = `import { HighlightStore } from ${JSON.stringify(new URL('../lib/store.mjs', import.meta.url).href)};
+    process.stdout.write('ready');
+    const store = new HighlightStore(process.argv[1], 'endpoint');
+    store.set({ kind: 'workspace', id: 'w1', workspaceId: 'w1' }, 'teal'); store.close();`;
+  try {
+    await new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, ['--input-type=module', '-e', script, dir], { stdio: ['ignore', 'pipe', 'pipe'] });
+      child.stdout.once('data', () => { release = setTimeout(() => reader.exec('COMMIT'), 250); });
+      child.stderr.on('data', chunk => { stderr += chunk; });
+      child.on('error', reject);
+      child.on('exit', code => code === 0 ? resolve() : reject(new Error(stderr)));
+    });
+  } finally { clearTimeout(release); reader.close(); }
+  const store = new HighlightStore(dir, 'endpoint');
+  try { assert.equal(store.get('workspace', 'w1'), 'teal'); } finally { store.close(); }
 });
 
 test('pane-move close data prunes source workspace/tab records without crossing endpoints', t => {
