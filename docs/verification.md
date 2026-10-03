@@ -14,8 +14,12 @@ Herdr executables were not replaced for these tests.
 - `HERDR_TEST_BIN=/path/to/master/herdr npm run test:integration`: passed on both
   hosts using isolated current-master servers, temporary configuration and
   endpoint sockets.
-- GitHub Actions runs the portable unit/check suite on Linux, macOS and Windows,
-  using Node 24 and 26. It does not run native Herdr/TTY integration on macOS or Windows.
+- All six [GitHub Actions jobs](https://github.com/Aziffo/herdr-highlight/actions/runs/37083071938)
+  passed the portable unit/check suite on Linux, macOS and Windows, using Node 24
+  and 26. Native Herdr/TTY integration was not run on macOS or Windows.
+- Installing `Aziffo/herdr-highlight` from GitHub using current master's
+  `herdr plugin install ... --yes` succeeded in an isolated configuration,
+  registering all 21 actions and the startup hook with no manifest warnings.
 
 Unit tests were introduced before the corresponding core/picker modules and
 observed failing, then made green. The concurrency regression exercises an
