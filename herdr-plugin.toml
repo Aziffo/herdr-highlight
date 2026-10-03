@@ -1,0 +1,175 @@
+id = "aziffo.highlight"
+name = "Highlight"
+version = "0.1.0"
+min_herdr_version = "0.9.3"
+description = "Persistent workspace/tab color choices with a popup picker and sidebar metadata"
+platforms = ["linux", "macos", "windows"]
+
+[[startup]]
+command = ["node", "bin/highlight.mjs", "restore"]
+
+[[actions]]
+id = "workspace-picker"
+title = "Highlight workspace…"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "open", "workspace"]
+
+[[actions]]
+id = "workspace-red"
+title = "Highlight workspace: Red"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "red"]
+
+[[actions]]
+id = "workspace-peach"
+title = "Highlight workspace: Peach"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "peach"]
+
+[[actions]]
+id = "workspace-yellow"
+title = "Highlight workspace: Yellow"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "yellow"]
+
+[[actions]]
+id = "workspace-green"
+title = "Highlight workspace: Green"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "green"]
+
+[[actions]]
+id = "workspace-teal"
+title = "Highlight workspace: Teal"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "teal"]
+
+[[actions]]
+id = "workspace-blue"
+title = "Highlight workspace: Blue"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "blue"]
+
+[[actions]]
+id = "workspace-mauve"
+title = "Highlight workspace: Mauve"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "mauve"]
+
+[[actions]]
+id = "workspace-gray"
+title = "Highlight workspace: Gray"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "gray"]
+
+[[actions]]
+id = "workspace-clear"
+title = "Highlight workspace: None"
+contexts = ["workspace"]
+command = ["node", "bin/highlight.mjs", "set", "workspace", "none"]
+
+[[actions]]
+id = "tab-picker"
+title = "Highlight tab…"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "open", "tab"]
+
+[[actions]]
+id = "tab-red"
+title = "Highlight tab: Red"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "red"]
+
+[[actions]]
+id = "tab-peach"
+title = "Highlight tab: Peach"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "peach"]
+
+[[actions]]
+id = "tab-yellow"
+title = "Highlight tab: Yellow"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "yellow"]
+
+[[actions]]
+id = "tab-green"
+title = "Highlight tab: Green"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "green"]
+
+[[actions]]
+id = "tab-teal"
+title = "Highlight tab: Teal"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "teal"]
+
+[[actions]]
+id = "tab-blue"
+title = "Highlight tab: Blue"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "blue"]
+
+[[actions]]
+id = "tab-mauve"
+title = "Highlight tab: Mauve"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "mauve"]
+
+[[actions]]
+id = "tab-gray"
+title = "Highlight tab: Gray"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "gray"]
+
+[[actions]]
+id = "tab-clear"
+title = "Highlight tab: None"
+contexts = ["tab"]
+command = ["node", "bin/highlight.mjs", "set", "tab", "none"]
+
+[[actions]]
+id = "restore"
+title = "Reapply saved highlights"
+contexts = ["global"]
+command = ["node", "bin/highlight.mjs", "restore"]
+
+[[events]]
+on = "workspace.closed"
+command = ["node", "bin/highlight.mjs", "event"]
+
+[[events]]
+on = "tab.closed"
+command = ["node", "bin/highlight.mjs", "event"]
+
+[[events]]
+on = "pane.created"
+command = ["node", "bin/highlight.mjs", "event"]
+
+[[events]]
+on = "pane.closed"
+command = ["node", "bin/highlight.mjs", "event"]
+
+[[events]]
+on = "pane.moved"
+command = ["node", "bin/highlight.mjs", "event"]
+
+[[events]]
+on = "tab.moved"
+command = ["node", "bin/highlight.mjs", "event"]
+
+[[panes]]
+id = "workspace-picker"
+title = "Highlight workspace"
+placement = "popup"
+width = 48
+height = 17
+command = ["node", "bin/highlight.mjs", "pick", "workspace"]
+
+[[panes]]
+id = "tab-picker"
+title = "Highlight tab"
+placement = "popup"
+width = 48
+height = 17
+command = ["node", "bin/highlight.mjs", "pick", "tab"]

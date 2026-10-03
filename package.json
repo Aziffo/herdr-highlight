@@ -1,0 +1,12 @@
+{
+  "name": "herdr-highlight",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "test": "node --test test/core.test.mjs test/picker.test.mjs",
+    "test:integration": "node --test test/integration.test.mjs",
+    "check": "node scripts/check.mjs"
+  }
+}
