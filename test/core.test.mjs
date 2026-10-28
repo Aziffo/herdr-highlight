@@ -244,7 +244,11 @@ test('identically named agents in one tab keep independent pane choices', () => 
 
 test('v1 migration preserves colors and counters; pane moves and closes stay endpoint-local', t => {
   const dir = mkdtempSync(join(tmpdir(), 'herdr-highlight-migrate-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  let a, b;
+  t.after(() => {
+    a?.close(); b?.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
   const old = new DatabaseSync(join(dir, 'highlights.sqlite'));
   old.exec(`CREATE TABLE endpoints (endpoint TEXT PRIMARY KEY, revision INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE highlights (endpoint TEXT, kind TEXT CHECK(kind IN ('workspace','tab')),
@@ -253,9 +257,8 @@ test('v1 migration preserves colors and counters; pane moves and closes stay end
     INSERT INTO highlights VALUES ('a','tab','w1:t1','w1','blue');
     PRAGMA user_version=1;`);
   old.close();
-  const a = new HighlightStore(dir, 'a');
-  const b = new HighlightStore(dir, 'b');
-  t.after(() => { a.close(); b.close(); });
+  a = new HighlightStore(dir, 'a');
+  b = new HighlightStore(dir, 'b');
   assert.equal(a.get('tab', 'w1:t1'), 'blue');
   assert.equal(a.snapshot().seq, 43);
   for (const store of [a, b]) store.set({ kind: 'pane', id: 'w1:p1', workspaceId: 'w1' }, 'red');
