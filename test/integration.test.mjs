@@ -140,7 +140,19 @@ test('plugin actions, lifecycle and startup restoration use the correct isolated
   assert.equal(siblings.length, 2);
   for (const pane of siblings) await a.request('pane.rename', { pane_id: pane.pane_id, label: 'simpleLoginlocal' });
   const paneContext = { ...context, focused_pane_id: selected.pane_id };
-  await a.action('pane-red', paneContext);
+  const paneLog = await a.action('pane-red', paneContext);
+  const nativePane = JSON.parse(paneLog.stdout || '{}').native === true;
+  if (process.env.HERDR_TEST_NATIVE) assert.equal(nativePane, true, 'fork must bypass SQLite');
+  if (nativePane) {
+    // A held SQLite write lock must not delay or fail a fork pane selection.
+    const locked = a.store();
+    locked.db.exec('BEGIN IMMEDIATE');
+    try {
+      await a.action('pane-green', paneContext);
+      assert.equal((await a.panes()).find(p => p.pane_id === selected.pane_id).tokens.highlight_pane, 'Green');
+      await a.action('pane-red', paneContext);
+    } finally { locked.db.exec('ROLLBACK'); locked.close(); }
+  }
   const projected = (await a.panes()).filter(pane => pane.tab_id === context.tab_id);
   assert.equal(projected.find(pane => pane.pane_id === selected.pane_id).tokens.highlight_pane, 'Red');
   assert.equal(projected.find(pane => pane.pane_id !== selected.pane_id).tokens?.highlight_pane, undefined);
@@ -220,7 +232,7 @@ test('plugin actions, lifecycle and startup restoration use the correct isolated
   assert.ok(movedPane, JSON.stringify(moved));
   await eventually(async () => (await a.panes()).find(pane => pane.pane_id === movedPane.pane_id)
     ?.tokens?.highlight_pane === 'Mauve', 'pane highlight follows a move to another workspace');
-  await eventually(() => {
+  if (!nativePane) await eventually(() => {
     const store = a.store();
     try { return store.get('pane', movedPane.pane_id) === 'mauve' && store.get('pane', selected.pane_id) === null; }
     finally { store.close(); }

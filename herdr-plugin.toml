@@ -1,6 +1,6 @@
 id = "aziffo.highlight"
 name = "Highlight"
-version = "0.2.0"
+version = "0.2.1"
 min_herdr_version = "0.9.3"
 description = "Persistent workspace/tab color choices with a popup picker and sidebar metadata"
 platforms = ["linux", "macos", "windows"]

@@ -14,10 +14,26 @@ async function main(args, env) {
   const color = command === 'set' ? parseColor(value) : null;
   const target = context ? targetFromContext(kind, context, client) : null;
   if (command === 'open') { client.openPicker(target); return; }
+  let paneChoice;
+  if (kind === 'pane' && ['set', 'pick'].includes(command)) {
+    paneChoice = color;
+    if (command === 'pick') {
+      const current = client.get('pane', target.id).tokens?.highlight_pane?.toLowerCase() ?? null;
+      const result = await runPicker(target, current);
+      if (result.cancelled) return;
+      paneChoice = result.color;
+      targetFromContext(kind, context, client);
+    }
+    if (await client.nativePaneHighlight(target, paneChoice)) {
+      process.stdout.write(`${JSON.stringify({ native: true, pane_id: target.id, color: paneChoice })}\n`);
+      return;
+    }
+  }
   const store = new HighlightStore(runtime.stateDir, runtime.namespace);
   try {
     if (command === 'set') store.set(target, color);
-    if (command === 'pick') {
+    if (command === 'pick' && kind === 'pane') store.set(target, paneChoice);
+    if (command === 'pick' && kind !== 'pane') {
       const result = await runPicker(target, store.get(kind, target.id));
       if (result.cancelled) return;
       // A popup can outlive its target. Never redirect the choice to current focus.

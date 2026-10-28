@@ -283,3 +283,21 @@ test('agent picker captures the exact pane even if focus changes while it is ope
     HERDR_PLUGIN_CONTEXT_JSON: JSON.stringify({ focused_pane_id: 'w1:p1' }) }, true);
   assert.equal(context.focused_pane_id, 'w1:p2');
 });
+
+
+test('native pane highlights fall back only for an unsupported API, never for runtime failures', async () => {
+  const client = new HerdrClient({});
+  const target = { id: 'w1:p2' };
+  client.request = async (method, params) => {
+    assert.equal(method, 'pane.highlight');
+    assert.deepEqual(params, { pane_id: target.id, color: 'green' });
+    return {};
+  };
+  assert.equal(await client.nativePaneHighlight(target, 'green'), true);
+  client.request = async () => { throw Object.assign(new Error('unknown variant `pane.highlight`'), { code: 'invalid_request' }); };
+  assert.equal(await client.nativePaneHighlight(target, null), false);
+  client.request = async () => { throw Object.assign(new Error('closed pane'), { code: 'pane_not_found' }); };
+  await assert.rejects(client.nativePaneHighlight(target, null), /closed pane/);
+  client.request = async () => { throw new Error('connection lost'); };
+  await assert.rejects(client.nativePaneHighlight(target, null), /connection lost/);
+});

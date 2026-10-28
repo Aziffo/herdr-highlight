@@ -199,3 +199,17 @@ HERDR_TEST_BIN=/path/to/current-master/herdr npm run test:integration
 Integration tests use fresh temporary config, state, session and socket roots;
 they never connect to existing sessions. See [verification](docs/verification.md)
 for the tested Herdr revision and platform coverage.
+
+### Native fork pane highlights (0.2.1)
+
+On the Aziffo v0.9.5 fork, pane selections use `pane.highlight` directly. The
+server applies the color immediately and saves it with the session in its
+background persistence worker. SQLite writes and full metadata reprojection are
+not on this path. Both the right-click menu and plugin picker use the same state.
+Native choices (including None) take precedence over older plugin metadata, and
+follow terminals across moves and session restoration. Existing SQLite choices
+remain the fallback until a native choice is made. Official Herdr continues to
+use the original SQLite implementation. Workspace/tab actions are unchanged.
+
+For the fork's native color indicator, omit `$highlight_pane` from custom sidebar
+rows to avoid printing the color name next to the agent.
