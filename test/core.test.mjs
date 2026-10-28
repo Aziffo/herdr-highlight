@@ -10,6 +10,7 @@ import { runtimeFromEnv, targetFromContext } from '../lib/context.mjs';
 import { HighlightStore } from '../lib/store.mjs';
 import { planMetadata, reapply } from '../lib/metadata.mjs';
 import { readContext } from '../lib/context.mjs';
+import { HerdrClient } from '../lib/herdr.mjs';
 
 test('fixed palette accepts only the eight colors and None', () => {
   assert.deepEqual(COLORS.map(c => c.key), ['red', 'peach', 'yellow', 'green', 'teal', 'blue', 'mauve', 'gray']);
@@ -88,7 +89,7 @@ test('metadata projection keeps native labels untouched and updates only owned d
   const patches = planMetadata(snapshot, rows);
   assert.deepEqual(patches.map(p => p.kind), ['workspace', 'pane']);
   assert.deepEqual(patches[0].tokens, { highlight_workspace: 'Teal', highlight_tabs: 't1:Blue' });
-  assert.deepEqual(patches[1].tokens, { highlight_workspace: 'Teal', highlight_tab: 'Blue' });
+  assert.deepEqual(patches[1].tokens, { highlight_workspace: 'Teal', highlight_tab: 'Blue', highlight_pane: null });
   assert.equal(snapshot.workspaces[0].tokens.unrelated, 'keep');
   for (const patch of patches) {
     const resource = patch.kind === 'workspace' ? snapshot.workspaces[0] : snapshot.panes[0];
@@ -223,4 +224,59 @@ test('pane-move close data prunes source workspace/tab records without crossing 
   assert.equal(a.get('workspace', 'w2'), 'blue');
   assert.equal(b.snapshot().rows.length, 3);
   a.close(); b.close();
+});
+
+
+test('identically named agents in one tab keep independent pane choices', () => {
+  const panes = ['w1:p1', 'w1:p2'].map(pane_id => ({ pane_id, tab_id: 'w1:t1', workspace_id: 'w1', label: 'simpleLoginlocal' }));
+  const client = { get: (_, id) => panes.find(pane => pane.pane_id === id) };
+  const target = targetFromContext('pane', { focused_pane_id: 'w1:p2', tab_id: 'w1:t1', workspace_id: 'w1' }, client);
+  assert.equal(target.id, 'w1:p2');
+  assert.throws(() => targetFromContext('pane', { focused_pane_id: 'w1:p2', tab_id: 'w1:t2' }, client), /tab/);
+  assert.throws(() => targetFromContext('pane', { focused_pane_id: 'w1:p2', workspace_id: 'w2' }, client), /workspace/);
+  assert.throws(() => targetFromContext('pane', { tab_id: 'w1:t1' }, client), /pane_id/);
+  const patches = planMetadata({ workspaces: [], tabs: [], panes }, [
+    { kind: 'pane', resource_id: target.id, workspace_id: 'w1', color: 'red' },
+  ]);
+  assert.equal(patches[0].tokens.highlight_pane, null);
+  assert.equal(patches[1].tokens.highlight_pane, 'Red');
+});
+
+test('v1 migration preserves colors and counters; pane moves and closes stay endpoint-local', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'herdr-highlight-migrate-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const old = new DatabaseSync(join(dir, 'highlights.sqlite'));
+  old.exec(`CREATE TABLE endpoints (endpoint TEXT PRIMARY KEY, revision INTEGER NOT NULL DEFAULT 0);
+    CREATE TABLE highlights (endpoint TEXT, kind TEXT CHECK(kind IN ('workspace','tab')),
+      resource_id TEXT, workspace_id TEXT, color TEXT, PRIMARY KEY(endpoint,kind,resource_id));
+    INSERT INTO endpoints VALUES ('a',42);
+    INSERT INTO highlights VALUES ('a','tab','w1:t1','w1','blue');
+    PRAGMA user_version=1;`);
+  old.close();
+  const a = new HighlightStore(dir, 'a');
+  const b = new HighlightStore(dir, 'b');
+  t.after(() => { a.close(); b.close(); });
+  assert.equal(a.get('tab', 'w1:t1'), 'blue');
+  assert.equal(a.snapshot().seq, 43);
+  for (const store of [a, b]) store.set({ kind: 'pane', id: 'w1:p1', workspaceId: 'w1' }, 'red');
+  a.removeClosed({ event: 'pane_moved', data: { previous_pane_id: 'w1:p1',
+    pane: { pane_id: 'w2:p3', workspace_id: 'w2' }, closed_workspace_id: 'w1' } });
+  assert.equal(a.get('pane', 'w1:p1'), null);
+  assert.equal(a.get('pane', 'w2:p3'), 'red');
+  assert.equal(b.get('pane', 'w1:p1'), 'red');
+  a.removeClosed({ event: 'pane_closed', data: { pane_id: 'w2:p3' } });
+  assert.equal(a.get('pane', 'w2:p3'), null);
+});
+
+
+test('agent picker captures the exact pane even if focus changes while it is open', () => {
+  const client = new HerdrClient({});
+  let args;
+  client.run = value => { args = value; };
+  client.openPicker({ kind: 'pane', id: 'w1:p2', workspaceId: 'w1' });
+  assert.equal(args[args.indexOf('--entrypoint') + 1], 'pane-picker');
+  const captured = args[args.indexOf('--env') + 1].split('=').slice(1).join('=');
+  const context = readContext({ HIGHLIGHT_TARGET_CONTEXT_JSON: captured,
+    HERDR_PLUGIN_CONTEXT_JSON: JSON.stringify({ focused_pane_id: 'w1:p1' }) }, true);
+  assert.equal(context.focused_pane_id, 'w1:p2');
 });

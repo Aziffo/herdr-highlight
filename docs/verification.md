@@ -1,5 +1,18 @@
 # Verification
 
+## Agent highlights (0.2.0)
+
+Verified on 2026-10-28 against the official Herdr v0.9.5 Linux x86_64 release,
+with Node 26.7.0. Syntax checks and all 21 unit tests pass. The isolated
+real-server integration suite also passes, including two identically named
+agents in one tab, independent set/clear, persistence after restart, and
+following a pane across workspaces before deleting its choice on close.
+Unit coverage includes transactional v1 database migration and capturing the
+original pane while a picker is open. The integration harness locates both
+stable and development state directories.
+
+## Earlier verification
+
 Tested on 2026-10-03 against an unmodified checkout of official
 `herdrdev/herdr` master at
 [`5da0a01e1eedda054db0c81dd3a780000c40d9f0`](https://github.com/herdrdev/herdr/commit/5da0a01e1eedda054db0c81dd3a780000c40d9f0),

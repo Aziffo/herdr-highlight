@@ -1,6 +1,6 @@
 id = "aziffo.highlight"
 name = "Highlight"
-version = "0.1.0"
+version = "0.2.0"
 min_herdr_version = "0.9.3"
 description = "Persistent workspace/tab color choices with a popup picker and sidebar metadata"
 platforms = ["linux", "macos", "windows"]
@@ -129,6 +129,66 @@ contexts = ["tab"]
 command = ["node", "bin/highlight.mjs", "set", "tab", "none"]
 
 [[actions]]
+id = "pane-picker"
+title = "Highlight agent…"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "open", "pane"]
+
+[[actions]]
+id = "pane-red"
+title = "Highlight agent: Red"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "red"]
+
+[[actions]]
+id = "pane-peach"
+title = "Highlight agent: Peach"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "peach"]
+
+[[actions]]
+id = "pane-yellow"
+title = "Highlight agent: Yellow"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "yellow"]
+
+[[actions]]
+id = "pane-green"
+title = "Highlight agent: Green"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "green"]
+
+[[actions]]
+id = "pane-teal"
+title = "Highlight agent: Teal"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "teal"]
+
+[[actions]]
+id = "pane-blue"
+title = "Highlight agent: Blue"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "blue"]
+
+[[actions]]
+id = "pane-mauve"
+title = "Highlight agent: Mauve"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "mauve"]
+
+[[actions]]
+id = "pane-gray"
+title = "Highlight agent: Gray"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "gray"]
+
+[[actions]]
+id = "pane-clear"
+title = "Highlight agent: None"
+contexts = ["pane"]
+command = ["node", "bin/highlight.mjs", "set", "pane", "none"]
+
+[[actions]]
 id = "restore"
 title = "Reapply saved highlights"
 contexts = ["global"]
@@ -173,3 +233,11 @@ placement = "popup"
 width = 48
 height = 17
 command = ["node", "bin/highlight.mjs", "pick", "tab"]
+
+[[panes]]
+id = "pane-picker"
+title = "Highlight agent"
+placement = "popup"
+width = 48
+height = 17
+command = ["node", "bin/highlight.mjs", "pick", "pane"]

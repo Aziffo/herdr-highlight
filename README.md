@@ -1,6 +1,6 @@
 # herdr-highlight
 
-A plugin implementation of the persistent workspace/tab color choices in
+A plugin implementation of the persistent workspace/tab/agent color choices in
 [Aziffo/herdr#1](https://github.com/Aziffo/herdr/pull/1), using existing Herdr plugin v1 APIs.
 No Herdr core patches are required.
 
@@ -51,6 +51,24 @@ State is stored locally on that endpoint; it is not synchronized between hosts.
 
 ## Use
 
+To highlight **one agent**, focus its pane and invoke `aziffo.highlight.pane-picker`.
+Pane actions use the unique `pane_id`, so two agents named `simpleLoginlocal` in
+one tab can have different colors. `pane-clear` clears only that agent.
+For example, bind the picker to `prefix+shift+h` (choose an unused key):
+
+```toml
+[[keys.command]]
+key = "prefix+shift+h"
+type = "plugin_action"
+command = "aziffo.highlight.pane-picker"
+description = "Highlight agent"
+```
+
+The official Herdr plugin API does not provide native right-click menu entries
+or whole-row coloring. The picker and colored sidebar tokens work without a fork.
+Use `$highlight_pane` in Agent rows to show independent agent colors.
+
+
 Inside Herdr, invoke the picker via a keybinding:
 
 ```toml
@@ -81,7 +99,7 @@ herdr plugin action invoke aziffo.highlight.tab-clear
 herdr plugin action invoke aziffo.highlight.restore
 ```
 
-Each kind has `<kind>-picker`, `<kind>-red`, `-peach`, `-yellow`, `-green`,
+Each kind (`workspace`, `tab`, or `pane`) has `<kind>-picker`, `<kind>-red`, `-peach`, `-yellow`, `-green`,
 `-teal`, `-blue`, `-mauve`, `-gray`, and `-clear`.
 Clearing a workspace does not clear its tab choices, and vice versa.
 
@@ -119,7 +137,7 @@ rows = [
 [ui.sidebar.agents]
 rows = [
   ["state_icon", "machine", "workspace", "tab"],
-  ["agent", "$highlight_workspace", "$highlight_tab"],
+  ["agent", "$highlight_workspace", "$highlight_pane"],
 ]
 ```
 
@@ -127,7 +145,7 @@ Then reload using `herdr server reload-config` (on the relevant endpoint).
 Rows show names such as `Teal`, and summaries such as `t1:Blue t3:Gray`.
 Long summaries are bounded to Herdr's 80-character metadata limit.
 Unselected tokens disappear. Workspace metadata is projected onto each pane
-only for Agent-row display: there is no independently persisted pane highlight.
+only for Agent-row display: independent agent choices are persisted separately by pane ID.
 Agent-specific `rows_by_agent` overrides must include these tokens too.
 Custom layouts currently affect expanded desktop sidebars, not compact/mobile layouts.
 
@@ -139,21 +157,23 @@ the surrounding workspace row/tab-bar entry.
 
 ## Persistence and lifecycle
 
-`HERDR_PLUGIN_STATE_DIR/highlights.sqlite` contains only workspace/tab choices,
+`HERDR_PLUGIN_STATE_DIR/highlights.sqlite` contains workspace/tab/pane choices,
 their owning workspace IDs, a hash of the endpoint socket/pipe path, and
 monotonic projection counters. SQLite transactions coordinate simultaneous
 actions; metadata sequence numbers prevent older projections overwriting newer ones.
-Other plugins' tokens and native labels are untouched. The three `highlight_*`
+Other plugins' tokens and native labels are untouched. The four `highlight_*`
 token names below are reserved to this plugin.
 
 | Surface | Owned tokens |
 | --- | --- |
 | Workspace metadata | `highlight_workspace`, `highlight_tabs` |
-| Pane metadata (display projection) | `highlight_workspace`, `highlight_tab` |
+| Pane metadata (display projection) | `highlight_workspace`, `highlight_tab`, `highlight_pane` |
 
 The startup hook runs after session restore, including live handoff. Linking or
 enabling a plugin in an already running server does not execute startup hooks;
 invoke `aziffo.highlight.restore` to reapply existing choices immediately.
+Pane choices follow pane moves and are removed on pane close. Existing v1 SQLite
+state migrates transactionally, preserving saved colors and sequence counters.
 Close hooks delete state, and pane creation/movement hooks refresh projections.
 Metadata itself is transient; SQLite remains the source of truth.
 

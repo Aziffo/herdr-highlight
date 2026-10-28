@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createConnection } from 'node:net';
@@ -98,8 +98,10 @@ class Endpoint {
   async panes() { return (await this.request('pane.list')).panes; }
 
   store() {
-    const env = { ...this.env, HERDR_BIN_PATH: binary,
-      HERDR_PLUGIN_STATE_DIR: join(this.env.XDG_STATE_HOME, 'herdr-dev', 'plugins', 'aziffo.highlight') };
+    const candidates = ['herdr', 'herdr-dev'].map(name => join(this.env.XDG_STATE_HOME, name, 'plugins', 'aziffo.highlight'));
+    const stateDir = candidates.find(path => existsSync(join(path, 'highlights.sqlite')));
+    assert.ok(stateDir, 'plugin must have created its state database');
+    const env = { ...this.env, HERDR_BIN_PATH: binary, HERDR_PLUGIN_STATE_DIR: stateDir };
     const runtime = runtimeFromEnv(env);
     return new HighlightStore(runtime.stateDir, runtime.namespace);
   }
@@ -131,6 +133,21 @@ test('plugin actions, lifecycle and startup restoration use the correct isolated
   const targetPanes = (await a.panes()).filter(pane => pane.workspace_id === other.workspace_id);
   assert.ok(targetPanes.length > 0);
   assert.ok(targetPanes.every(pane => pane.tokens.highlight_workspace === 'Red'));
+
+  const selected = targetPanes[0];
+  await a.request('pane.split', { target_pane_id: selected.pane_id, direction: 'right' });
+  const siblings = (await a.panes()).filter(pane => pane.tab_id === context.tab_id);
+  assert.equal(siblings.length, 2);
+  for (const pane of siblings) await a.request('pane.rename', { pane_id: pane.pane_id, label: 'simpleLoginlocal' });
+  const paneContext = { ...context, focused_pane_id: selected.pane_id };
+  await a.action('pane-red', paneContext);
+  const projected = (await a.panes()).filter(pane => pane.tab_id === context.tab_id);
+  assert.equal(projected.find(pane => pane.pane_id === selected.pane_id).tokens.highlight_pane, 'Red');
+  assert.equal(projected.find(pane => pane.pane_id !== selected.pane_id).tokens?.highlight_pane, undefined);
+  await a.action('pane-clear', paneContext);
+  assert.ok((await a.panes()).filter(pane => pane.tab_id === context.tab_id)
+    .every(pane => pane.tokens?.highlight_pane === undefined));
+  await a.action('pane-mauve', paneContext);
 
   await a.action('tab-blue', context);
   const highlighted = await a.workspace(other.workspace_id);
@@ -180,6 +197,8 @@ test('plugin actions, lifecycle and startup restoration use the correct isolated
     const panes = (await a.panes()).filter(pane => pane.workspace_id === other.workspace_id);
     return panes.length > 0 && panes.every(pane => pane.tokens?.highlight_workspace === 'Teal');
   }, 'startup pane projections');
+  assert.equal((await a.panes()).find(pane => pane.pane_id === selected.pane_id).tokens.highlight_pane, 'Mauve');
+
   assert.equal((await a.workspace(first.workspace_id)).tokens?.highlight_workspace, undefined,
     'restoration must not apply another socket\'s identically numbered workspace');
   assert.equal((await b.workspace(bFirst.workspace_id)).tokens.highlight_workspace, 'Yellow');
@@ -195,6 +214,22 @@ test('plugin actions, lifecycle and startup restoration use the correct isolated
     const store = a.store();
     try { return store.get('tab', extra.tab_id) === null; } finally { store.close(); }
   }, 'tab-close hook pruning persisted tab state');
+  const moved = await a.request('pane.move', { pane_id: selected.pane_id,
+    destination: { type: 'new_tab', workspace_id: first.workspace_id }, focus: false });
+  const movedPane = moved.move_result.pane;
+  assert.ok(movedPane, JSON.stringify(moved));
+  await eventually(async () => (await a.panes()).find(pane => pane.pane_id === movedPane.pane_id)
+    ?.tokens?.highlight_pane === 'Mauve', 'pane highlight follows a move to another workspace');
+  await eventually(() => {
+    const store = a.store();
+    try { return store.get('pane', movedPane.pane_id) === 'mauve' && store.get('pane', selected.pane_id) === null; }
+    finally { store.close(); }
+  }, 'pane-move hook migrates persisted agent identity');
+  await a.request('pane.close', { pane_id: movedPane.pane_id });
+  await eventually(() => {
+    const store = a.store();
+    try { return store.get('pane', movedPane.pane_id) === null; } finally { store.close(); }
+  }, 'pane-close hook removes only that agent choice');
   await a.request('workspace.close', { workspace_id: other.workspace_id });
   await eventually(() => {
     const store = a.store();
